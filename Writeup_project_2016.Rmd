@@ -1,0 +1,143 @@
+---
+title: "Practcal Machine learning - Project Writeup"
+author: "Guy Mathys"
+date: "8 februari 2016"
+output: html_document
+---
+
+
+# 1. Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+# 2. Project
+
+ The goal of the project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. Any of the other variables to predict with may be used. A report describing how you built a model, how across validation,is used and what to think the expected out of sample error is, and the reason of the choices. The prediction model to predict 20 different test cases is used. 
+ 
+ In this project write-up, the data from Human Activity Recognition (HAR) has been used.
+
+## 2.1.Loading Data
+
+After a visual check of the data , there were lots of missing data (NA), therefore only the columns with more then 5 pct of ata have been retained. Reason , when there is less then 5 pct data, the chance that they influence the result is small and is just computerresuorces consuming. 
+
+```{r}
+
+#Loading library used.
+library(caret)
+library(randomForest)
+library(ggplot2)
+library(lattice)
+
+#Clearing Workspace
+rm(list=ls())
+setwd("C:/Users/Guy Mathys/Documents/GitHub")
+
+
+# Load the training data set
+trainingData <- read.csv("pml-training.csv",na.strings=c("NA",""))
+```
+
+## 2.2 Exploring and Cleaning Data
+
+```{r}
+# Number of columns
+ncol(trainingData)
+# Number of rows
+nrow(trainingData)
+# Summary
+summary(trainingData[,c(1:2,159:160)])
+
+```
+
+Discard columns with at least 95 pct missing data
+
+```{r}
+# Discard columns with at least 95 pct NAs
+ncol(trainingData)
+NAs <- apply(trainingData, 2, function(x) { sum(is.na(x)) })
+trainingData <- trainingData[, which(NAs < nrow(trainingData)*.95)]
+ncol(trainingData)
+
+```
+
+This resulted in 19622 rows and 60 columns (variables), instead of 160 columns. 
+
+10 pct of the whole HAR (filtered) trainingData data set as a representative sample is used.
+
+```{r}
+# Create a subset of trainingData set
+trainIndex <- createDataPartition(y = trainingData$classe, p=0.1,list=FALSE)
+trainSample <- trainingData[trainIndex,]
+
+```
+
+Using a Scatterplot Matrices for visual reference
+
+```{r}
+pairs(trainSample[1:10000,1:10])
+pairs(trainSample[1:10000,11:20])
+pairs(trainSample[1:10000,21:30])
+
+```
+
+
+## 2.3.Training Model
+
+Random Forest  will be usED to train the Prediction Model set to predict the weight lifting quality in the Training Set.
+
+```{r}
+trainmodel <- train(classe~., data=trainSample, method = "rf", tuneLength = 1, ntree = 25)
+print(trainmodel)
+```
+
+## 2.4. Evaluating the Model
+
+### 2.4.1. Evaluate
+```{r}
+confusionMatrix(predict(trainmodel, trainingData), trainingData$classe)
+```
+
+### 2.4.2.Visual Representation of accuracy
+
+```{r}
+plot(predict(trainmodel,newdata=trainingData[,-ncol(trainingData)]),trainingData$classe, xlab="Validate Set", ylab="Prediction Model Set",col = c("black","red", "blue","green","yellow"))
+```
+
+Note on Class:
+* A: Exactly according to the specification
+* B: Throwing the elbows to the front
+* C: Lifting the dumbbell only halfway
+* D: Lowering the dumbbell only halfway
+* E: Throwing the hips to the front
+
+### 2.4.3. Accuracy of the Model
+
+``` {r}
+accurate <- c(as.numeric(predict(trainmodel,newdata=trainingData[,-ncol(trainingData)])==trainingData$classe))
+MAccuracy <- sum(accurate)*100/nrow(trainingData)
+message("Accuracy of Prediction Model set VS Validate Data set = ", format(round(MAccuracy, 2), nsmall=2),"%")
+```
+
+# 2.5. Conclusion
+A nearly  100% accuracy was computed here, but caution must be taken due to the use of Random forest, tends to Overfitting.
+
+
+# 2.6. Predictions on the testing set
+
+```{r}
+# Load test data
+testingData = read.csv("pml-testing.csv",na.strings=c("NA",""))
+# Only take the columns of testingData that are also in trainData
+testingData <- testingData[ , which(names(testingData) %in% names(trainingData))]# Number of rows:
+nrow(testingData)
+
+```
+
+## 2.6.1. Results of the Prediction to Testing Set
+```{r}
+test<-predict(trainmodel, testingData)
+print(test)
+```
+
+
+
