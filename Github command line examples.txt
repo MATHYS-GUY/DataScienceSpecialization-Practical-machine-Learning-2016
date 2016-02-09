@@ -1,0 +1,15 @@
+…or create a new repository on the command line
+
+
+echo "# Practical-machine-Learning-2016" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin https://github.com/MATHYS-GUY/Practical-machine-Learning-2016.git
+git push -u origin master
+
+
+
+git add *
+git commit -m "first exercise"
+git push 
